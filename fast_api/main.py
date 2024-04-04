@@ -23,7 +23,7 @@ app.add_middleware(
 )
 
 app.mount(
-    "/static", StaticFiles(directory="./uploaded_images"), name="static"
+    "/uploaded_images", StaticFiles(directory="./uploaded_images"), name="uploaded_images"
 )  # api/static/filename.jpg
 
 
