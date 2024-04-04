@@ -23,8 +23,7 @@ app.add_middleware(
 )
 
 app.mount(
-    "/uploaded_images", StaticFiles(directory="./uploaded_images"), name="uploaded_images"
-)  # api/static/filename.jpg
+    "/uploaded_images", StaticFiles(directory="./uploaded_images"), name="uploaded_images")
 
 
 class FeedbackData(BaseModel):

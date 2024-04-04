@@ -23,3 +23,14 @@ services:
     ports:
       - '8000:8000'
     restart: always
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: mysqldb
+      PMA_USER: xenon
+      PMA_PASSWORD: l3lazker
+      PMA_ARBITRARY: 1
+    ports:
+      - "8080:80"
+    restart: always
