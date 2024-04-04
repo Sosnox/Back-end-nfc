@@ -1,0 +1,25 @@
+version: '3.1'
+
+services:
+  mysqldb:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: l3lazker
+      MYSQL_DATABASE: db-nfc-game
+      MYSQL_USER: xenon
+      MYSQL_PASSWORD: l3lazker
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d:ro
+
+  fast_api:
+    build: ./fast_api
+    command: uvicorn main:app --reload --host 0.0.0.0 --port 8000
+    volumes:
+      - ./fast_api/:/app/
+    depends_on:
+      - mysqldb
+    ports:
+      - '8000:8000'
+    restart: always
