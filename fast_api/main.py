@@ -4,6 +4,9 @@ import mysql.connector
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from passlib.context import CryptContext
+from enum import Enum
 from typing import Optional
 import os
 import uuid  # ใช้สำหรับสร้างชื่อไฟล์ที่ไม่ซ้ำกัน
@@ -25,8 +28,9 @@ app.add_middleware(
 
 app.mount(
     "/static", StaticFiles(directory="./uploaded_images"), name="static"
-)  # api/static/filename.jpg
+) 
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class FeedbackData(BaseModel):
     name_report: str
@@ -35,6 +39,9 @@ class FeedbackData(BaseModel):
     rating: int
     checktypes: str
 
+class UserRole(str, Enum):
+    super_admin = 'super_admin'
+    admin = 'admin'
 
 class BoardGameData(BaseModel):
     title_game: str
@@ -599,29 +606,67 @@ async def update_boardgame(
     return response
 
 
-def insert_user_admin(username: str, password: str, first_name: str, last_name: str, role: str):
+# def insert_user_admin(username: str, password: str, first_name: str, last_name: str, role: UserRole):
+#     connection = connect_to_mysql()
+#     cursor = connection.cursor()
+#     try:
+        #   if role not in UserRole.__members__.values():
+        #         raise ValueError("Invalid role. Choose 'super_admin' or 'admin'.")
+#         query = "INSERT INTO User (username, password, first_name, last_name, role) VALUES (%s, %s, %s, %s, %s)"
+#         data = (username, password, first_name, last_name, role)
+#         cursor.execute(query, data)
+#         connection.commit()
+#         return {"message": "Data inserted successfully"}
+#     except Exception as e:
+#         connection.rollback()
+#         raise HTTPException(
+#             status_code=500, detail=f"Error inserting data into MySQL database: {e}"
+#         )
+#     finally:
+#         cursor.close()
+#         connection.close()
+
+
+# @app.post("/post_user_admin/")
+# async def post_user_admin(username: str, password: str, first_name: str, last_name: str, role: str):
+#     try:
+#         return insert_user_admin(username, password, first_name, last_name, role)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
+
+
+def insert_user_admin(username: str, hashed_password: str, first_name: str, last_name: str, role: UserRole):
     connection = connect_to_mysql()
     cursor = connection.cursor()
     try:
+        # Check if the role is valid
+        if role not in UserRole.__members__.values():
+            raise ValueError("Invalid role. Choose 'super_admin' or 'admin'.")
         query = "INSERT INTO User (username, password, first_name, last_name, role) VALUES (%s, %s, %s, %s, %s)"
-        data = (username, password, first_name, last_name, role)
+        data = (username, hashed_password, first_name, last_name, role)
         cursor.execute(query, data)
         connection.commit()
-        return {"message": "Data inserted successfully"}
-    except Exception as e:
+        return {"message": "Data inserted successfully", "id_user": cursor.lastrowid}
+    except mysql.connector.Error as e:
         connection.rollback()
         raise HTTPException(
             status_code=500, detail=f"Error inserting data into MySQL database: {e}"
+        )
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=400, detail=str(ve)
         )
     finally:
         cursor.close()
         connection.close()
 
-
 @app.post("/post_user_admin/")
-async def post_user_admin(username: str, password: str, first_name: str, last_name: str, role: str):
+async def post_user_admin(username: str, password: str, first_name: str, last_name: str, role: UserRole):
+    hashed_password = pwd_context.hash(password)  # Hashing the password
     try:
-        return insert_user_admin(username, password, first_name, last_name, role)
+        return insert_user_admin(username, hashed_password, first_name, last_name, role)
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
 
