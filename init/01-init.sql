@@ -52,5 +52,5 @@ CREATE TABLE IF NOT EXISTS User (
     password VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     first_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     last_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-    role VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+    role ENUM('super_admin', 'admin') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
