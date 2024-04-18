@@ -4,8 +4,8 @@ import mysql.connector
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from passlib.context import CryptContext
+# from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+# from passlib.context import CryptContext
 from enum import Enum
 from typing import Optional
 import os
@@ -29,7 +29,7 @@ app.add_middleware(
 app.mount(
     "/uploaded_images", StaticFiles(directory="./uploaded_images"), name="uploaded_images")
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class FeedbackData(BaseModel):
     name_report: str
@@ -605,127 +605,127 @@ async def update_boardgame(
     return response
 
 
-# def insert_user_admin(username: str, password: str, first_name: str, last_name: str, role: UserRole):
+def insert_user_admin(username: str, password: str, first_name: str, last_name: str, role: UserRole):
+    connection = connect_to_mysql()
+    cursor = connection.cursor()
+    try:
+        if role not in UserRole.__members__.values():
+            raise ValueError("Invalid role. Choose 'super_admin' or 'admin'.")
+        query = "INSERT INTO User (username, password, first_name, last_name, role) VALUES (%s, %s, %s, %s, %s)"
+        data = (username, password, first_name, last_name, role)
+        cursor.execute(query, data)
+        connection.commit()
+        return {"message": "Data inserted successfully"}
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error inserting data into MySQL database: {e}"
+        )
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@app.post("/post_user_admin/")
+async def post_user_admin(username: str, password: str, first_name: str, last_name: str, role: str):
+    try:
+        return insert_user_admin(username, password, first_name, last_name, role)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
+
+
+# def insert_user_admin(username: str, hashed_password: str, first_name: str, last_name: str, role: UserRole):
 #     connection = connect_to_mysql()
 #     cursor = connection.cursor()
 #     try:
-        #   if role not in UserRole.__members__.values():
-        #         raise ValueError("Invalid role. Choose 'super_admin' or 'admin'.")
+#         # Check if the role is valid
+#         if role not in UserRole.__members__.values():
+#             raise ValueError("Invalid role. Choose 'super_admin' or 'admin'.")
 #         query = "INSERT INTO User (username, password, first_name, last_name, role) VALUES (%s, %s, %s, %s, %s)"
-#         data = (username, password, first_name, last_name, role)
+#         data = (username, hashed_password, first_name, last_name, role)
 #         cursor.execute(query, data)
 #         connection.commit()
-#         return {"message": "Data inserted successfully"}
-#     except Exception as e:
+#         return {"message": "Data inserted successfully", "id_user": cursor.lastrowid}
+#     except mysql.connector.Error as e:
 #         connection.rollback()
 #         raise HTTPException(
 #             status_code=500, detail=f"Error inserting data into MySQL database: {e}"
+#         )
+#     except ValueError as ve:
+#         raise HTTPException(
+#             status_code=400, detail=str(ve)
 #         )
 #     finally:
 #         cursor.close()
 #         connection.close()
 
-
 # @app.post("/post_user_admin/")
-# async def post_user_admin(username: str, password: str, first_name: str, last_name: str, role: str):
+# async def post_user_admin(username: str, password: str, first_name: str, last_name: str, role: UserRole):
+#     hashed_password = pwd_context.hash(password)  # Hashing the password
 #     try:
-#         return insert_user_admin(username, password, first_name, last_name, role)
+#         return insert_user_admin(username, hashed_password, first_name, last_name, role)
+#     except HTTPException as he:
+#         raise he
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
 
 
-def insert_user_admin(username: str, hashed_password: str, first_name: str, last_name: str, role: UserRole):
-    connection = connect_to_mysql()
-    cursor = connection.cursor()
-    try:
-        # Check if the role is valid
-        if role not in UserRole.__members__.values():
-            raise ValueError("Invalid role. Choose 'super_admin' or 'admin'.")
-        query = "INSERT INTO User (username, password, first_name, last_name, role) VALUES (%s, %s, %s, %s, %s)"
-        data = (username, hashed_password, first_name, last_name, role)
-        cursor.execute(query, data)
-        connection.commit()
-        return {"message": "Data inserted successfully", "id_user": cursor.lastrowid}
-    except mysql.connector.Error as e:
-        connection.rollback()
-        raise HTTPException(
-            status_code=500, detail=f"Error inserting data into MySQL database: {e}"
-        )
-    except ValueError as ve:
-        raise HTTPException(
-            status_code=400, detail=str(ve)
-        )
-    finally:
-        cursor.close()
-        connection.close()
+# def delete_user_admin(username: str):
+#     connection = connect_to_mysql()
+#     cursor = connection.cursor()
+#     try:
+#         query = "DELETE FROM User WHERE username = %s"
+#         data = (username,)
+#         cursor.execute(query, data)
+#         connection.commit()
+#         if cursor.rowcount == 0:
+#             return {"message": "No user found with that username."}
+#         return {"message": "User deleted successfully"}
+#     except Exception as e:
+#         connection.rollback()
+#         raise HTTPException(
+#             status_code=500, detail=f"Error deleting user from MySQL database: {e}"
+#         )
+#     finally:
+#         cursor.close()
+#         connection.close()
 
-@app.post("/post_user_admin/")
-async def post_user_admin(username: str, password: str, first_name: str, last_name: str, role: UserRole):
-    hashed_password = pwd_context.hash(password)  # Hashing the password
-    try:
-        return insert_user_admin(username, hashed_password, first_name, last_name, role)
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
+# @app.delete("/delete_user_admin/{username}")
+# async def delete_user_admin_endpoint(username: str):
+#     try:
+#         return delete_user_admin(username)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
 
+# def get_user_admin(username: str):
+#     connection = connect_to_mysql()
+#     cursor = connection.cursor(dictionary=True)  # Use dictionary=True to return data as a dict
+#     try:
+#         query = "SELECT * FROM User WHERE username = %s"
+#         data = (username,)
+#         cursor.execute(query, data)
+#         result = cursor.fetchone()  # Fetch only one record
+#         if result is None:
+#             return {"message": "No user found with that username."}
+#         return result
+#     except Exception as e:
+#         connection.rollback()
+#         raise HTTPException(
+#             status_code=500, detail=f"Error retrieving user from MySQL database: {e}"
+#         )
+#     finally:
+#         cursor.close()
+#         connection.close()
 
-def delete_user_admin(username: str):
-    connection = connect_to_mysql()
-    cursor = connection.cursor()
-    try:
-        query = "DELETE FROM User WHERE username = %s"
-        data = (username,)
-        cursor.execute(query, data)
-        connection.commit()
-        if cursor.rowcount == 0:
-            return {"message": "No user found with that username."}
-        return {"message": "User deleted successfully"}
-    except Exception as e:
-        connection.rollback()
-        raise HTTPException(
-            status_code=500, detail=f"Error deleting user from MySQL database: {e}"
-        )
-    finally:
-        cursor.close()
-        connection.close()
-
-@app.delete("/delete_user_admin/{username}")
-async def delete_user_admin_endpoint(username: str):
-    try:
-        return delete_user_admin(username)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
-
-def get_user_admin(username: str):
-    connection = connect_to_mysql()
-    cursor = connection.cursor(dictionary=True)  # Use dictionary=True to return data as a dict
-    try:
-        query = "SELECT * FROM User WHERE username = %s"
-        data = (username,)
-        cursor.execute(query, data)
-        result = cursor.fetchone()  # Fetch only one record
-        if result is None:
-            return {"message": "No user found with that username."}
-        return result
-    except Exception as e:
-        connection.rollback()
-        raise HTTPException(
-            status_code=500, detail=f"Error retrieving user from MySQL database: {e}"
-        )
-    finally:
-        cursor.close()
-        connection.close()
-
-@app.get("/get_user_admin/{username}", response_model=User)
-async def get_user_admin_endpoint(username: str):
-    try:
-        user_info = get_user_admin(username)
-        if "message" in user_info:
-            raise HTTPException(status_code=404, detail=user_info["message"])
-        return user_info
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
+# @app.get("/get_user_admin/{username}", response_model=User)
+# async def get_user_admin_endpoint(username: str):
+#     try:
+#         user_info = get_user_admin(username)
+#         if "message" in user_info:
+#             raise HTTPException(status_code=404, detail=user_info["message"])
+#         return user_info
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
 
 
 def delete_card(id_card: str):
