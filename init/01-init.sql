@@ -45,3 +45,12 @@ CREATE TABLE IF NOT EXISTS Connect_BoardGame_Card (
     id_boardgame INT,
     FOREIGN KEY (id_boardgame) REFERENCES BoardGame(id_boardgame)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS User (
+    id_user INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    password VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    first_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    last_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    role ENUM('super_admin', 'admin') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
