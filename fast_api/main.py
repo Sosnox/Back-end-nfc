@@ -27,8 +27,7 @@ app.add_middleware(
 )
 
 app.mount(
-    "/static", StaticFiles(directory="./uploaded_images"), name="static"
-) 
+    "/uploaded_images", StaticFiles(directory="./uploaded_images"), name="uploaded_images")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
