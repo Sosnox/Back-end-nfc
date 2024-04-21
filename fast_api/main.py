@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from enum import Enum
 from typing import Optional
 import os
-import uuid  # ใช้สำหรับสร้างชื่อไฟล์ที่ไม่ซ้ำกัน
+import uuid
 
 app = FastAPI()
 
@@ -80,13 +80,13 @@ def connect_to_mysql():
 
 
 def insert_report(
-    name_report: str, contact: str, detail_report: str, rating: int, checktypes: str
+    name_report: str, detail_report: str, rating: int, checktypes: str
 ):
     connection = connect_to_mysql()
     cursor = connection.cursor()
     try:
-        query = "INSERT INTO Report (name_report, contact, detail_report, rating, checktypes) VALUES (%s, %s, %s, %s, %s)"
-        data = (name_report, contact, detail_report, rating, checktypes)
+        query = "INSERT INTO Report (name_report, detail_report, rating, checktypes) VALUES (%s, %s, %s, %s, %s)"
+        data = (name_report, detail_report, rating, checktypes)
         cursor.execute(query, data)
         connection.commit()
         return {"message": "Data inserted successfully"}
@@ -153,18 +153,17 @@ def insert_card_data(
     detail_card: str,
     tick_card: str,
     path_image_card: str,
-    count_scan_card: int,
     id_boardgame: int,
 ):
     connection = connect_to_mysql()
     cursor = connection.cursor()
     try:
         query = "INSERT INTO Card (title_card, detail_card, path_image_card, tick_card, count_scan_card) VALUES (%s, %s, %s, %s, %s)"
-        data = (title_card, detail_card, path_image_card, tick_card, count_scan_card)
+        data = (title_card, detail_card, path_image_card, tick_card, 0)
         cursor.execute(query, data)
         connection.commit()
 
-        id_card = cursor.lastrowid  # รับค่า id ของข้อมูลที่เพิ่มล่าสุด
+        id_card = cursor.lastrowid
 
         query = (
             "INSERT INTO Connect_BoardGame_Card (id_boardgame, id_card) VALUES (%s, %s)"
@@ -188,7 +187,6 @@ async def post_card(
     title_card: str = Form(...),
     detail_card: str = Form(...),
     tick_card: str = Form(...),
-    count_scan_card: int = Form(...),
     id_boardgame: int = Form(...),
     file: UploadFile = File(...),
 ):
@@ -200,6 +198,8 @@ async def post_card(
 
         with open(file_location_card, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+
+        count_scan_card = 0
 
         response = insert_card_data(
             title_card,
@@ -225,7 +225,6 @@ def insert_boardgame(
     age_recommend: int,
     time_playing: int,
     type_game: str,
-    count_scan_boardgame: int,
 ):
     connection = connect_to_mysql()
     cursor = connection.cursor()
@@ -242,7 +241,7 @@ def insert_boardgame(
             age_recommend,
             time_playing,
             type_game,
-            count_scan_boardgame,
+            0,
         )
         cursor.execute(query, data)
         connection.commit()
@@ -269,7 +268,6 @@ async def post_boardgame(
     age_recommend: int = Form(...),
     time_playing: int = Form(...),
     type_game: str = Form(...),
-    count_scan_boardgame: int = Form(...),
 ):
     try:
         uid_filename = uuid.uuid4()
@@ -279,6 +277,8 @@ async def post_boardgame(
 
         with open(file_location_boardgame, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+
+        count_scan_boardgame = 0
 
         return insert_boardgame(
             title_game,
@@ -357,7 +357,7 @@ async def get_boardgame_by_id_boardgame(id_boardgame: int):
     try:
         boardgame_data = get_boardgame_data_by_id_boardgame_data(id_boardgame)
         if not boardgame_data:
-            return "No card data found for the given board game ID."
+            return []
         return boardgame_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
@@ -627,7 +627,7 @@ def insert_user_admin(username: str, password: str, first_name: str, last_name: 
 
 
 @app.post("/post_user_admin/")
-async def post_user_admin(username: str, password: str, first_name: str, last_name: str, role: str):
+async def post_user_admin(username: str, password: str, first_name: str, last_name: str, role: UserRole):
     try:
         return insert_user_admin(username, password, first_name, last_name, role)
     except Exception as e:
@@ -781,4 +781,61 @@ async def delete_boardgame_endpoint(id_boardgame: str):
     try:
         return delete_boardgame(id_boardgame)
     except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
+
+
+def update_count_view(id_boardgame: int):
+    connection = connect_to_mysql()
+    cursor = connection.cursor()
+    try:
+        query = "UPDATE BoardGame SET count_scan_boardgame = count_scan_boardgame + 1 WHERE id_boardgame = %s"
+        cursor.execute(query, (id_boardgame,))
+        connection.commit()
+        print("Count updated successfully")
+        return {"message": f"Updating count for board game with ID_Boardgame {id_boardgame}"}
+    except Exception as e:
+        print(f"Error updating data in MySQL database: {e}")
+        connection.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error updating data in MySQL database: {e}"
+        )
+    finally:
+        cursor.close()
+        connection.close()
+
+@app.patch("/update_count_view/{id_boardgame}")
+async def update_count_views(id_boardgame: int):
+    try:
+        print(f"Received request to update count for ID {id_boardgame}")
+        return update_count_view(id_boardgame)
+    except Exception as e:
+        print(f"Error processing request: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
+
+def update_count_view_card(title_card: str):
+    connection = connect_to_mysql()
+    cursor = connection.cursor()
+    try:
+        query = "UPDATE Card SET count_scan_card = count_scan_card + 1 WHERE title_card = %s"
+        cursor.execute(query, (title_card,))
+        connection.commit()
+        print("Count updated successfully")
+        return {"message": f"Updating count for board game with ID_Card {title_card}"}
+    except Exception as e:
+        print(f"Error updating data in MySQL database: {e}")
+        connection.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error updating data in MySQL database: {e}"
+        )
+    finally:
+        cursor.close()
+        connection.close()
+
+@app.patch("/update_count_view_card/{title_card}")
+async def update_count_views_card(title_card: str):
+    try:
+        print(f"Received request to update count for ID {title_card}")
+        return update_count_view_card(title_card)
+    except Exception as e:
+        print(f"Error processing request: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
