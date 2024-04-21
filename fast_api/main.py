@@ -1,3 +1,4 @@
+
 import shutil
 from fastapi import FastAPI, HTTPException, Request, File, UploadFile, Form ,Path
 import mysql.connector
@@ -697,52 +698,66 @@ async def post_user_admin(username: str, password: str, first_name: str, last_na
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
 
-# def get_user_admin(username: str):
-#     connection = connect_to_mysql()
-#     cursor = connection.cursor(dictionary=True)  # Use dictionary=True to return data as a dict
-#     try:
-#         query = "SELECT * FROM User WHERE username = %s"
-#         data = (username,)
-#         cursor.execute(query, data)
-#         result = cursor.fetchone()  # Fetch only one record
-#         if result is None:
-#             return {"message": "No user found with that username."}
-#         return result
-#     except Exception as e:
-#         connection.rollback()
-#         raise HTTPException(
-#             status_code=500, detail=f"Error retrieving user from MySQL database: {e}"
-#         )
-#     finally:
-#         cursor.close()
-#         connection.close()
+def get_user_admin(username: str):
+    connection = connect_to_mysql()
+    cursor = connection.cursor(dictionary=True)  # Use dictionary=True to return data as a dict
+    try:
+        query = "SELECT * FROM User WHERE username = %s"
+        data = (username,)
+        cursor.execute(query, data)
+        result = cursor.fetchone()  # Fetch only one record
+        if result is None:
+            return {"message": "No user found with that username."}
+        return result
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving user from MySQL database: {e}"
+        )
+    finally:
+        cursor.close()
+        connection.close()
 
-# @app.get("/get_user_admin/{username}", response_model=User)
-# async def get_user_admin_endpoint(username: str):
-#     try:
-#         user_info = get_user_admin(username)
-#         if "message" in user_info:
-#             raise HTTPException(status_code=404, detail=user_info["message"])
-#         return user_info
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
+@app.get("/get_user_admin/{username}", response_model=User)
+async def get_user_admin_endpoint(username: str):
+    try:
+        user_info = get_user_admin(username)
+        if "message" in user_info:
+            raise HTTPException(status_code=404, detail=user_info["message"])
+        return user_info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
 
 
 def delete_card(id_card: str):
     connection = connect_to_mysql()
     cursor = connection.cursor()
     try:
-        query = "DELETE FROM Card WHERE id_card = %s"
-        data = (id_card,)
-        cursor.execute(query, data)
+        # First, retrieve the path of the image for the card to be deleted
+        cursor.execute("SELECT path_image_card FROM Card WHERE id_card = %s", (id_card,))
+        image_info = cursor.fetchone()
+
+        # Check for and delete any dependencies in the Connect_BoardGame_Card table
+        cursor.execute("DELETE FROM Connect_BoardGame_Card WHERE id_card = %s", (id_card,))
+
+        # Now attempt to delete the card itself
+        cursor.execute("DELETE FROM Card WHERE id_card = %s", (id_card,))
         connection.commit()
+
         if cursor.rowcount == 0:
-            return {"message": "No user found with that id_card."}
-        return {"message": "User deleted successfully"}
+            return {"message": "No card found with that id_card."}
+
+
+        if image_info:  # This will be true if the fetch was successful
+            image_path = os.path.join('uploaded_images', str(image_info[0]))
+            os.remove(image_path)
+
+        return {"message": "Card deleted successfully"}
+
     except Exception as e:
         connection.rollback()
         raise HTTPException(
-            status_code=500, detail=f"Error deleting user from MySQL database: {e}"
+            status_code=500, detail=f"Error deleting card from MySQL database: {e}"
         )
     finally:
         cursor.close()
@@ -760,23 +775,34 @@ def delete_boardgame(id_boardgame: str):
     connection = connect_to_mysql()
     cursor = connection.cursor()
     try:
-        query = "DELETE FROM BoardGame WHERE id_boardgame = %s"
-        data = (id_boardgame,)
-        cursor.execute(query, data)
+        # Get the image path before deletion
+        cursor.execute("SELECT path_image_boardgame FROM BoardGame WHERE id_boardgame = %s", (id_boardgame,))
+        image_info = cursor.fetchone()
+
+        # Delete the boardgame
+        cursor.execute("DELETE FROM BoardGame WHERE id_boardgame = %s", (id_boardgame,))
         connection.commit()
+
         if cursor.rowcount == 0:
-            return {"message": "No user found with that id_boardgame."}
-        return {"message": "User deleted successfully"}
+            return {"message": "No boardgame found with that id_boardgame."}
+
+        # Delete the image file
+        if image_info:
+            image_path = os.path.join('uploaded_images', str(image_info[0]))
+            os.remove(image_path)
+
+        return {"message": "Card and associated image deleted successfully"}
+
     except Exception as e:
         connection.rollback()
         raise HTTPException(
-            status_code=500, detail=f"Error deleting user from MySQL database: {e}"
+            status_code=500, detail=f"Error deleting boardgame from MySQL database: {e}"
         )
     finally:
         cursor.close()
         connection.close()
 
-@app.delete("/delete_card/{id_boardgame}")
+@app.delete("/delete_boardgame/{id_boardgame}")
 async def delete_boardgame_endpoint(id_boardgame: str):
     try:
         return delete_boardgame(id_boardgame)
