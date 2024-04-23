@@ -4,10 +4,10 @@ services:
   mysqldb:
     image: mysql:5.7
     environment:
-      MYSQL_ROOT_PASSWORD: l3lazker
+      MYSQL_ROOT_PASSWORD: skizztv191
       MYSQL_DATABASE: db-nfc-game
       MYSQL_USER: xenon
-      MYSQL_PASSWORD: l3lazker
+      MYSQL_PASSWORD: skizztv191
     ports:
       - "3306:3306"
     volumes:

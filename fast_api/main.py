@@ -47,6 +47,7 @@ class BoardGameData(BaseModel):
     title_game: str
     detail_game: str
     path_image_boardgame: str
+    path_youtube : str
     player_recommend_start: int
     player_recommend_end: int
     age_recommend: int
@@ -71,7 +72,7 @@ class CardData(BaseModel):
 def connect_to_mysql():
     try:
         connection = mysql.connector.connect(
-            host="mysqldb", user="xenon", password="l3lazker", database="db-nfc-game"
+            host="mysqldb", user="xenon", password="skizztv191", database="db-nfc-game"
         )
         return connection
     except mysql.connector.Error as e:
@@ -292,7 +293,6 @@ async def post_boardgame(
             age_recommend,
             time_playing,
             type_game,
-            count_scan_boardgame,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
@@ -329,7 +329,7 @@ async def get_card_by_id_boardgame(id_boardgame: int):
     try:
         card_data = get_card_data_by_id_boardgame_data(id_boardgame)
         if not card_data:
-            return "No card data found for the given board game ID."
+            return []
         return card_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
@@ -770,7 +770,7 @@ async def delete_card_endpoint(id_card: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
 
-
+# #################################################################
 def delete_boardgame(id_boardgame: str):
     connection = connect_to_mysql()
     cursor = connection.cursor()
@@ -808,7 +808,7 @@ async def delete_boardgame_endpoint(id_boardgame: str):
         return delete_boardgame(id_boardgame)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
-
+# #################################################################
 
 def update_count_view(id_boardgame: int):
     connection = connect_to_mysql()

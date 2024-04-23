@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS Report (
     checktypes VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     detail_report TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     rating INT,
-    name_report VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    name_report VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS Connect_BoardGame_Card (
