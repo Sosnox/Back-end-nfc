@@ -29,7 +29,7 @@ services:
     environment:
       PMA_HOST: mysqldb
       PMA_USER: xenon
-      PMA_PASSWORD: l3lazker
+      PMA_PASSWORD: skizztv191
       PMA_ARBITRARY: 1
     ports:
       - "8080:80"
