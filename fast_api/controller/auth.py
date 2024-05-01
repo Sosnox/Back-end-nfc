@@ -1,4 +1,13 @@
-from fastapi import FastAPI, HTTPException, Request, File, UploadFile, Form ,Path, APIRouter
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Request,
+    File,
+    UploadFile,
+    Form,
+    Path,
+    APIRouter,
+)
 from fastapi.security import OAuth2PasswordBearer
 import asyncpg
 import os
@@ -10,6 +19,7 @@ from enum import Enum
 from typing import Optional
 import shutil
 
+
 class FeedbackData(BaseModel):
     name_report: str
     contact: str
@@ -17,20 +27,23 @@ class FeedbackData(BaseModel):
     rating: int
     checktypes: str
 
+
 class UserRole(str, Enum):
-    super_admin = 'super_admin'
-    admin = 'admin'
+    super_admin = "super_admin"
+    admin = "admin"
+
 
 class BoardGameData(BaseModel):
     title_game: str
     detail_game: str
     path_image_boardgame: str
-    path_youtube : str
+    path_youtube: str
     player_recommend_start: int
     player_recommend_end: int
     age_recommend: int
     time_playing: int
     count_scan_boardgame: int
+
 
 class User(BaseModel):
     username: str
@@ -39,6 +52,7 @@ class User(BaseModel):
     last_name: str
     role: str
 
+
 class CardData(BaseModel):
     title_card: str
     detail_card: str
@@ -46,10 +60,12 @@ class CardData(BaseModel):
     count_scan_card: int
     id_boardgame: int
 
+
 router = APIRouter(
     prefix="/auth",
     tags=["Authen"],
 )
+
 
 def connect_to_mysql():
     try:
@@ -62,56 +78,61 @@ def connect_to_mysql():
             status_code=500, detail=f"Error connecting to MySQL database: {e}"
         )
 
+
 @router.post("/reg")
 async def register(
-    username:str=Form(...),
-    password:str=Form(...),
-    first_name:str=Form(...),
-    last_name:str=Form(...),
-    role:str=Form(...)
-    ):
+    username: str = Form(...),
+    password: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    role: UserRole = Form(...),
+):
     connection = mysql.connector.connect(
-            host="mysqldb", user="xenon", password="skizztv191", database="db-nfc-game"
-        )
-    conn = connection.cursor()
+        host="mysqldb", user="xenon", password="skizztv191", database="db-nfc-game"
+    )
+    cursor = connection.cursor()
 
-    conn.execute(
-        '''
-        INSERT INTO User(username, password, first_name, last_name, role) VALUES(%s ,%s ,%s ,%s ,%s);
-        '''
-        ,(username, AuthService.hash_password(password), first_name, last_name, role)
+    cursor.execute("SELECT username FROM User WHERE username = %s;", (username,))
+    if cursor.fetchone():
+        connection.close()
+        raise HTTPException(status_code=400, detail="Username already taken")
+
+    hashed_password = AuthService.hash_password(password)
+    cursor.execute(
+        """
+        INSERT INTO User(username, password, first_name, last_name, role) VALUES(%s, %s, %s, %s, %s);
+        """,
+        (username, hashed_password, first_name, last_name, role),
     )
 
     connection.commit()
     connection.close()
 
-    return True
+    return {"message": "User created successfully : {username}", "status" : True}
+
 
 @router.post("/login")
-async def login(
-    username:str=Form(...),
-    password:str=Form(...)):
+async def login(username: str = Form(...), password: str = Form(...)):
     connection = mysql.connector.connect(
-            host="mysqldb", user="xenon", password="skizztv191", database="db-nfc-game"
-        )
+        host="mysqldb", user="xenon", password="skizztv191", database="db-nfc-game"
+    )
     conn = connection.cursor()
 
     conn.execute(
-        '''
+        """
         SELECT * FROM User Where username = %s;
-        '''
-        ,(username,)
+        """,
+        (username,),
     )
 
     user = conn.fetchall()[0]
     if AuthService.hash_password(password) == user[2]:
         return {
-            "token":AuthService.create_token(str(user[0]), timedelta(minutes=59),user[5]),
-            "exp":"59m",
-            "role":user[5]
-            }
+            "token": AuthService.create_token(
+                str(user[0]), timedelta(minutes=59), user[5]
+            ),
+            "exp": "59m",
+            "role": user[5],
+        }
     else:
         return "wrong pass"
-
-    
-

@@ -100,10 +100,10 @@ def insert_card_data(
 
 @router.post("/post_card/")
 async def post_card(
+    id_boardgame: int = Form(...),
     title_card: str = Form(...),
     detail_card: str = Form(...),
     tick_card: str = Form(...),
-    id_boardgame: int = Form(...),
     file: UploadFile = File(...),
     # token:str = Depends(oauth2_scheme)
 ):
@@ -465,6 +465,13 @@ def delete_boardgame(id_boardgame: str):
         # Get the image path before deletion
         cursor.execute("SELECT path_image_boardgame FROM BoardGame WHERE id_boardgame = %s", (id_boardgame,))
         image_info = cursor.fetchone()
+
+        # Fetch all card IDs associated with the boardgame
+        cursor.execute("SELECT id_card FROM Connect_BoardGame_Card WHERE id_boardgame = %s", (id_boardgame,))
+        all_cards = cursor.fetchall()
+
+        for (id_card,) in all_cards:
+            delete_card(id_card)
 
         # Delete the boardgame
         cursor.execute("DELETE FROM BoardGame WHERE id_boardgame = %s", (id_boardgame,))

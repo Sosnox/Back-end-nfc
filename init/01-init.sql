@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS BoardGame (
 CREATE TABLE IF NOT EXISTS Report (
     id_report INT AUTO_INCREMENT PRIMARY KEY,
     id_boardgame INT,
-    FOREIGN KEY (id_boardgame) REFERENCES BoardGame(id_boardgame),
+    FOREIGN KEY (id_boardgame) REFERENCES BoardGame(id_boardgame) ON DELETE CASCADE,
     count_scan_card INT,
     count_scan_boardgame INT,
     date_report DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -40,9 +40,9 @@ CREATE TABLE IF NOT EXISTS Report (
 CREATE TABLE IF NOT EXISTS Connect_BoardGame_Card (
     id_total_boardgame INT AUTO_INCREMENT PRIMARY KEY,
     id_card INT,
-    FOREIGN KEY (id_card) REFERENCES Card(id_card),
+    FOREIGN KEY (id_card) REFERENCES Card(id_card) ON DELETE CASCADE,
     id_boardgame INT,
-    FOREIGN KEY (id_boardgame) REFERENCES BoardGame(id_boardgame)
+    FOREIGN KEY (id_boardgame) REFERENCES BoardGame(id_boardgame) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS User (
