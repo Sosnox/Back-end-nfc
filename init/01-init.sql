@@ -28,10 +28,7 @@ CREATE TABLE IF NOT EXISTS Report (
     id_report INT AUTO_INCREMENT PRIMARY KEY,
     id_boardgame INT,
     FOREIGN KEY (id_boardgame) REFERENCES BoardGame(id_boardgame) ON DELETE CASCADE,
-    count_scan_card INT,
-    count_scan_boardgame INT,
     date_report DATETIME DEFAULT CURRENT_TIMESTAMP,
-    checktypes VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     detail_report TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     rating INT,
     name_report VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
