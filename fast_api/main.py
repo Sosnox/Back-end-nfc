@@ -34,6 +34,8 @@ from controller.admin import router as admin_router
 app.include_router(admin_router)
 from controller.superadmin import router as superadmin_router
 app.include_router(superadmin_router)
+from controller.dashboard import router as dashboard_router
+app.include_router(dashboard_router)
 
 app.mount(
     "/uploaded_images", StaticFiles(directory="./uploaded_images"), name="uploaded_images")
@@ -108,16 +110,16 @@ def update_count_view(id_boardgame: int):
         connection.close()
 
 def insert_report(
-    name_report: str, detail_report: str, rating: int, checktypes: str
+    name_report: str, detail_report: str, rating: int, checktypes: str, id_boardgame: int
 ):
     connection = connect_to_mysql()
     cursor = connection.cursor()
     try:
-        query = "INSERT INTO Report (name_report, detail_report, rating, checktypes) VALUES (%s, %s, %s, %s)"
-        data = (name_report, detail_report, rating, checktypes)
+        query = "INSERT INTO Report (name_report, detail_report, rating, checktypes, id_boardgame) VALUES (%s, %s, %s, %s, %s)"
+        data = (name_report, detail_report, rating, checktypes, id_boardgame)
         cursor.execute(query, data)
         connection.commit()
-        return {"message": "Data inserted successfully"}
+        return {"message": "Data inserted successfully" , "status" : True}
     except mysql.connector.Error as e:
         raise HTTPException(
             status_code=500, detail=f"Error inserting data into MySQL database: {e}"
@@ -162,15 +164,9 @@ async def get_report(id: str):
 
 
 @app.post("/post_feedback/")
-async def insert_feedback(feedback_data: FeedbackData):
-    print(feedback_data)
+async def insert_feedback(name_report:str=Form(...), detail_report:str=Form(...), rating:int=Form(...), checktypes:str=Form(None), id_boardgame:int=Form(...)):
     try:
-        name_report = feedback_data.name_report
-        detail_report = feedback_data.detail_report
-        rating = feedback_data.rating
-        checktypes = feedback_data.checktypes
-
-        return insert_report(name_report, detail_report, rating, checktypes)
+        return insert_report(name_report, detail_report, rating, 'Nan', id_boardgame)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
 
@@ -417,3 +413,35 @@ async def update_count_views_card(title_card: str):
     except Exception as e:
         print(f"Error processing request: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
+
+@app.get('/searchGame')
+def searchGame():
+    connection = connect_to_mysql()
+    conn = connection.cursor()
+    conn.execute('SELECT * FROM BoardGame;')
+    allGames = conn.fetchall()
+    result = {}
+    for item in allGames:
+        result[item[0]] = item[1]
+    return result
+
+@app.get('/searchCard/{game_id}')
+def searchCard(game_id:int):
+    connection = connect_to_mysql()
+    conn = connection.cursor()
+    conn.execute('SELECT id_card FROM Connect_BoardGame_Card WHERE id_boardgame = %s;',(game_id,))
+    card_id_temp = conn.fetchall()
+    result = {}
+    for item in card_id_temp:
+        conn.execute('SELECT title_card FROM Card WHERE id_card = %s;',(item[0],))
+        name = conn.fetchall()
+        result[item[0]] = name[0][0]
+    return result
+
+@app.get('/getRecommended')
+def getRec():
+    connection = connect_to_mysql()
+    conn = connection.cursor(dictionary=True)
+    conn.execute('SELECT * FROM BoardGame WHERE recommend = 1;')
+    result_temp = conn.fetchall()
+    return result_temp

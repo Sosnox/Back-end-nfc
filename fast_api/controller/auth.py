@@ -129,9 +129,9 @@ async def login(username: str = Form(...), password: str = Form(...)):
     if AuthService.hash_password(password) == user[2]:
         return {
             "token": AuthService.create_token(
-                str(user[0]), timedelta(minutes=59), user[5]
+                str(user[0]), timedelta(minutes=30), user[5]
             ),
-            "exp": "59m",
+            "exp": 30,
             "role": user[5],
         }
     else:
