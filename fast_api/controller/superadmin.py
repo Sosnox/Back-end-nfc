@@ -54,6 +54,10 @@ class CardData(BaseModel):
     count_scan_card: int
     id_boardgame: int
 
+class UserRole(str, Enum):
+    super_admin = "super_admin"
+    admin = "admin"
+
 def connect_to_mysql():
     try:
         connection = mysql.connector.connect(
@@ -65,14 +69,13 @@ def connect_to_mysql():
             status_code=500, detail=f"Error connecting to MySQL database: {e}"
         )
 
-def get_user_admin(username: str):
+def get_user_admin():
     connection = connect_to_mysql()
     cursor = connection.cursor(dictionary=True)  # Use dictionary=True to return data as a dict
     try:
-        query = "SELECT * FROM User WHERE username = %s"
-        data = (username,)
-        cursor.execute(query, data)
-        result = cursor.fetchone()  # Fetch only one record
+        query = "SELECT * FROM User"
+        cursor.execute(query)
+        result = cursor.fetchall()  # Fetch only one record
         if result is None:
             return {"message": "No user found with that username."}
         return result
@@ -85,11 +88,11 @@ def get_user_admin(username: str):
         cursor.close()
         connection.close()
 
-@router.get("/get_user_admin/{username}", response_model=User)
-async def get_user_admin_endpoint(username: str,token:str = Depends(oauth2_scheme)):
+@router.get("/get_user_admin/")
+async def get_user_admin_endpoint(token:str = Depends(oauth2_scheme)):
     AuthService.isSuperAdmin(token)
     try:
-        user_info = get_user_admin(username)
+        user_info = get_user_admin()
         if "message" in user_info:
             raise HTTPException(status_code=404, detail=user_info["message"])
         return user_info
@@ -117,9 +120,51 @@ def insert_user_admin(username: str, password: str, first_name: str, last_name: 
         connection.close()
 
 @router.post("/post_user_admin/")
-async def post_user_admin(username:str=Form(...), password:str=Form(...), first_name:str=Form(...), last_name:str=Form(...), role:str=Form(...),token:str = Depends(oauth2_scheme)):
+async def post_user_admin(username:str=Form(...), password:str=Form(...), first_name:str=Form(...), last_name:str=Form(...), role: UserRole = Form(...),token:str = Depends(oauth2_scheme)):
     AuthService.isSuperAdmin(token)
     try:
         return insert_user_admin(username, password, first_name, last_name, role)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {e}")
+
+@router.delete("/delete_admin/{admin_id}")
+async def get_user_admin_endpoint(admin_id:int,token:str = Depends(oauth2_scheme)):
+    AuthService.isSuperAdmin(token)
+    connection = connect_to_mysql()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        query = "DELETE FROM User WHERE id_user = %s"
+        data = (admin_id,)
+        cursor.execute(query, data)
+        connection.commit()
+        return {"status": "success", "message": "User deleted successfully"}
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error inserting data into MySQL database: {e}"
+        )
+    finally:
+        cursor.close()
+        connection.close()
+
+@router.patch("/forcePass_admin")
+async def get_user_admin_endpoint(id:int=Form(...),password:str=Form(...),token:str = Depends(oauth2_scheme)):
+    AuthService.isSuperAdmin(token)
+    connection = connect_to_mysql()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        query = "UPDATE User SET password = %s WHERE id_user = %s"
+        data = (AuthService.hash_password(password), str(id))
+        cursor.execute(query, data)
+        connection.commit()
+        return {"status": "success", "message": "Password updated successfully"} 
+    except Exception as e:
+        connection.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error inserting data into MySQL database: {e}"
+        )
+    finally:
+        cursor.close()
+        connection.close()

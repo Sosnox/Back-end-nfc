@@ -125,14 +125,20 @@ async def login(username: str = Form(...), password: str = Form(...)):
         (username,),
     )
 
-    user = conn.fetchall()[0]
-    if AuthService.hash_password(password) == user[2]:
-        return {
-            "token": AuthService.create_token(
-                str(user[0]), timedelta(minutes=30), user[5]
-            ),
-            "exp": 30,
-            "role": user[5],
-        }
+    temp = conn.fetchall()
+
+    if temp:
+        user = temp[0]
+
+        if AuthService.hash_password(password) == user[2]:
+            return {
+                "token": AuthService.create_token(
+                    str(user[0]), timedelta(minutes=30), user[5]
+                ),
+                "exp": 30,
+                "role": user[5],
+            }
+        else:
+            return "wrong pass"
     else:
-        return "wrong pass"
+        return "user not found"
